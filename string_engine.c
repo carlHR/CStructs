@@ -25,6 +25,9 @@ void string_engine_init(StringEngine *se) {
 	array_init(&(se->scopes), sizeof(size_t));
 	array_push(&(se->scopes), &n);
 	se->id = ++_id;
+	if (_current == NULL) {
+		_current = se;
+	}
 }
 
 void string_engine_free(StringEngine *se) {
