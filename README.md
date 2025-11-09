@@ -47,15 +47,16 @@ A few problems I have with strings in C:
 
 In order to create a counter measure against all of these cases, I created what's known as a String Engine. Imagine this thing as an actual variable, that'll store all allocated strings when its bound to the global state. Imitating a OpenGL call `bind`, only one string engine can be bound at a time.
 
-When bound to a global state, whenever you'd create a new string, instead of you calling malloc, the string engine does all of that for you behind the scenes.
+When bound to a global state, whenever you'd create a new string, instead of you calling malloc and free afterwards, the string engine does all of that for you behind the scenes.
 
 By using the concepts of scopes, you can push/pop a scope. All strings created inside a scope will be deallocated once the scope has been popped. Similarly, whenever you call `string_engine_free`, all memory allocated from the engine is released from memory.
 
 While the idea sounds interesting, it has a few drawbacks:
    - Strings are only alive when you're inside an actual scope.
-   - Strings cannot know wether their data is being owned by another resource.
+   - Strings do not know wether their data is being owned by another resource.
+   - Thus, calling pop on an owned string, causes undefined behavior.
 
-So, just like any use of pointers in C, its easy to get lost and do something wrong, if you accidentally leave a scope.
+So, just like any use of pointers in C, its easy to get lost and do something wrong, if you accidentally leave a scope "by accident".
 
 Here's an example on how to use it:
 ```
@@ -66,6 +67,7 @@ int main(void) {
    String a, b, c;
 
    string_engine_init(&se);
+   string_engine_bind(&se);
 
    a = string_newf("a");
    b = string_newf("b");
@@ -79,9 +81,7 @@ int main(void) {
 }
 ```
 
-The header file contains more information about which operations create a string and manipulate the current engine. Essentially, the string engine is not thread-safe by default. However, one can make it thread-safe, if each thread uses their own engine separately for reading and writing.
+The header file contains more information about which operations create a string and target the current engine in order to write data into them. Furthermore, this module, unlike the others, was not meant to be thread-safe.
 
 The string engine provides support for UTF-8 introspection, and regex in C. For this reason, it needs more compiler flags in order to fully compile the code.
-
-String types are just integers used to point to valid objects inside the engine given the correct scope. The string engine never produces two equal integers at the same time.
 
