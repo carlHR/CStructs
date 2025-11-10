@@ -104,5 +104,3 @@ Behaves like C++ map, granting an associative storage between a key of variable 
 Behaves much like hashmap.h internally, but makes use of VArray in each bucket to store the key-value pair. Unlike hashmap.h, the data structure does not store the `klen` attribute anymore, as key length is of variable size. Only `vlen` remains.
 
 The only drawback of this data structure is the same as hashmap.h: values are not tightly packed with each other (as there're keys in between), and the entire data is not contiguous (as each bucket has a different data memory location). 
-
-TBD.
