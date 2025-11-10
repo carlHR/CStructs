@@ -66,7 +66,7 @@ ArrayIter array_iter_first(Array *a);
 ArrayIter array_iter_find(Array *a, size_t i);
 ArrayIter array_iter_last(Array *a);
 ArrayIter array_iter_insert(ArrayIter *it, void *x);
-void array_iter_erase(ArrayIter *it);
+ArrayIter array_iter_erase(ArrayIter *it);
 void array_iter_next(ArrayIter *it);
 void array_iter_prev(ArrayIter *it);
 void array_iter_set(ArrayIter it, void *x);

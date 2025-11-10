@@ -63,7 +63,7 @@ void varray_iter_next(VArrayIter *it);
 void varray_iter_prev(VArrayIter *it);
 
 VArrayIter varray_iter_insert(VArrayIter *it, void *x, size_t len);
-void varray_iter_erase(VArrayIter *it);
+VArrayIter varray_iter_erase(VArrayIter *it);
 void varray_iter_set(VArrayIter it, void *x, size_t newlen);
 void varray_iter_read(VArrayIter it, void *x, size_t *len);
 void *varray_iter_get(VArrayIter it, size_t *len);

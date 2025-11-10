@@ -67,9 +67,6 @@ void hashmap_resize(Hashmap *h, size_t n) {
 
 	hashmap_init(&t, h->klen, h->vlen, n);
 	for (HashmapIter it = hashmap_iter_first(h); !hashmap_iter_end(it); hashmap_iter_next(&it)) {
-		int *key, *val;
-		key = hashmap_iter_get_key(it);
-		val = hashmap_iter_get(it);
 		hashmap_set(&t, hashmap_iter_get_key(it), hashmap_iter_get(it));
 	}
 
