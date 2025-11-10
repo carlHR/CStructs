@@ -280,10 +280,15 @@ VArrayIter varray_iter_insert(VArrayIter *it, void *x, size_t len) {
 	return nt;
 }
 
-void varray_iter_erase(VArrayIter *it) {
+VArrayIter varray_iter_erase(VArrayIter *it) {
+	VArrayIter nt;
+	nt.varray = it->varray;
+	nt.mditer = it->mditer;
 	if (varray_iter_continue(*it)) {
 		varray_erase(it->varray, it->mditer.index);
+		--nt.mditer.index;
 	}
+	return nt;
 }
 
 void varray_iter_set(VArrayIter it, void *x, size_t newlen) {

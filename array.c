@@ -222,10 +222,15 @@ ArrayIter array_iter_insert(ArrayIter *it, void *x) {
 	return nt;
 }
 
-void array_iter_erase(ArrayIter *it) {
+ArrayIter array_iter_erase(ArrayIter *it) {
+	ArrayIter nt;
+	nt.array = it->array;
+	nt.index = it->index;
 	if (array_iter_continue(*it)) {
 		array_erase(it->array, it->index);
+		--nt.index;
 	}
+	return nt;
 }
 
 void array_iter_next(ArrayIter *it) {

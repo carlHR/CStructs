@@ -83,5 +83,26 @@ int main(void) {
 
 The header file contains more information about which operations create a string and target the current engine in order to write data into them. Furthermore, this module, unlike the others, was not meant to be thread-safe.
 
-The string engine provides support for UTF-8 introspection, and regex in C. For this reason, it needs more compiler flags in order to fully compile the code.
+The string engine provides support for UTF-8 introspection, and regex in C. For this reason, it needs more compiler flags in order to fully compile the code. With msys2 on windows, the compiler flags needed are `-IC:/msys64/mingw64/bin/../include -D__USE_MINGW_ANSI_STDIO=1 -LC:/msys64/mingw64/bin/../lib -lregex -ltre -pipe -lintl`, which is the result of `pkgconf.exe --libs --cflags regex`.
 
+---
+# Hashmap
+
+Behaves closely to C++ map, although it's keys and values must be of a constant size in bytes.
+
+Can be used to associate key and value, regardless of their data type, treating both the key and value as byte streams. It makes use of a hashing function from hash.h, to convert the key with a huge number.
+
+The hashmap makes use of a bunch of buckets, which are arrays that stores the key-value pairs contiguously. Whenever the user requests to search for an item, the key is hashed into a number, this number is then pointed at one of the buckets, and for all items of that bucket, all keys are compared as strings, character by character. The longer the keys, the longer it takes to compare them fully and retrieve the item.
+
+The only drawback of this data structure is that values are not tightly packed with each other (as there're keys in between), and the entire data is not contiguous (as each bucket has a different data memory location). 
+
+---
+# VHashmap
+
+Behaves like C++ map, granting an associative storage between a key of variable size, and a value of constant size in bytes.
+
+Behaves much like hashmap.h internally, but makes use of VArray in each bucket to store the key-value pair. Unlike hashmap.h, the data structure does not store the `klen` attribute anymore, as key length is of variable size. Only `vlen` remains.
+
+The only drawback of this data structure is the same as hashmap.h: values are not tightly packed with each other (as there're keys in between), and the entire data is not contiguous (as each bucket has a different data memory location). 
+
+TBD.
