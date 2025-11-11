@@ -286,7 +286,7 @@ VArrayIter varray_iter_erase(VArrayIter *it) {
 	nt.mditer = it->mditer;
 	if (varray_iter_continue(*it)) {
 		varray_erase(it->varray, it->mditer.index);
-		--nt.mditer.index;
+		--(it->mditer.index);
 	}
 	return nt;
 }

@@ -89,14 +89,19 @@ void vhashmap_set(VHashmap *h, void *key, size_t klen, void *x) {
 		// klen won't change, otherwise its an insert operation.
 		// Set value only
 		data = varray_get(bucket, index, NULL);
-		memmove(&(data[klen]), x, h->vlen);
+
+		if (x != NULL)
+			memmove(&(data[klen]), x, h->vlen);
 	} else {
 		// Insert data
 		varray_push(bucket, NULL, (klen + (h->vlen)));
 		data = varray_get(bucket, bucket->metadata.length-1, NULL);
 
-		memmove(&(data[0]), key, klen);
-		memmove(&(data[klen]), x, h->vlen);
+		if (key != NULL)
+			memmove(&(data[0]), key, klen);
+
+		if (x != NULL)
+			memmove(&(data[klen]), x, h->vlen);
 	}
 }
 
@@ -147,15 +152,15 @@ void *vhashmap_get(VHashmap *h, void *key, size_t klen) {
 
 VHashmapIter vhashmap_iter_first(VHashmap *h) {
 	VHashmapIter it;
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 
 	it.vhashmap = h;
 	it.bucket = VHASHMAP_INVALID_INDEX;
 	it.index = VHASHMAP_INVALID_INDEX;
 
 	for (ArrayIter jt = array_iter_first(&(h->buckets)); !array_iter_end(jt); array_iter_next(&jt)) {
-		array_iter_read(jt, &bucket);
-		if (bucket.metadata.length > 0) {
+		bucket = array_iter_get(jt);
+		if (bucket->metadata.length > 0) {
 			it.bucket = jt.index;
 			it.index = 0;
 			break;
@@ -181,17 +186,17 @@ VHashmapIter vhashmap_iter_find(VHashmap *h, void *key, size_t klen) {
 
 VHashmapIter vhashmap_iter_last(VHashmap *h) {
 	VHashmapIter it;
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 
 	it.vhashmap = h;
 	it.bucket = VHASHMAP_INVALID_INDEX;
 	it.index = VHASHMAP_INVALID_INDEX;
 
 	for (ArrayIter jt = array_iter_last(&(h->buckets)); !array_iter_end(jt); array_iter_prev(&jt)) {
-		array_iter_read(jt, &bucket);
-		if (bucket.metadata.length > 0) {
+		bucket = array_iter_get(jt);
+		if (bucket->metadata.length > 0) {
 			it.bucket = jt.index;
-			it.index = bucket.metadata.length-1;
+			it.index = bucket->metadata.length-1;
 			break;
 		}
 	}
@@ -211,42 +216,46 @@ VHashmapIter vhashmap_iter_insert(VHashmapIter *it, void *key, size_t klen, void
 	nt.bucket = it->bucket;
 	nt.index = it->index;
 
-	if (vhashmap_iter_continue(*it)) {
-		if (vhashmap_find(it->vhashmap, key, klen, &bucket, &bindex, &index)) {
-			// Set value only
-			data = varray_get(bucket, index, NULL);
+	if (vhashmap_find(it->vhashmap, key, klen, &bucket, &bindex, &index)) {
+		// Set value only
+		data = varray_get(bucket, index, NULL);
+
+		if (x != NULL)
 			memmove(&(data[klen]), x, it->vhashmap->vlen);
-		} else {
-			// Insert data
-			if (it->bucket == bindex) {
-				varray_insert(bucket, it->index, NULL, (klen + (it->vhashmap->vlen)));
-				data = varray_get(bucket, it->index, NULL);
-				memmove(&(data[0]), key, klen);
-				memmove(&(data[klen]), x, it->vhashmap->vlen);
-				++(it->index);
-			} else {
-				varray_push(bucket, NULL, (klen + (it->vhashmap->vlen)));
-				data = varray_get(bucket, bucket->metadata.length-1, NULL);
-				memmove(&(data[0]), key, klen);
-				memmove(&(data[klen]), x, it->vhashmap->vlen);
-				nt.bucket = bindex;
-				nt.index = bucket->metadata.length-1;
-			}
-		}
+
 	} else {
-		varray_push(bucket, NULL, (klen + (it->vhashmap->vlen)));
-		data = varray_get(bucket, bucket->metadata.length-1, NULL);
-		memmove(&(data[0]), key, klen);
-		memmove(&(data[klen]), x, it->vhashmap->vlen);
-		nt.bucket = bindex;
-		nt.index = bucket->metadata.length-1;
+		// Insert data
+		if (vhashmap_iter_continue(*it) && it->bucket == bindex) {
+			varray_insert(bucket, it->index, NULL, (klen + (it->vhashmap->vlen)));
+			data = varray_get(bucket, it->index, NULL);
+
+			if (key != NULL)
+				memmove(&(data[0]), key, klen);
+
+			if (x != NULL)
+				memmove(&(data[klen]), x, it->vhashmap->vlen);
+
+			++(it->index);
+		} else {
+			varray_push(bucket, NULL, (klen + (it->vhashmap->vlen)));
+			data = varray_get(bucket, bucket->metadata.length-1, NULL);
+
+			if (key != NULL)
+				memmove(&(data[0]), key, klen);
+
+			if (x != NULL)
+				memmove(&(data[klen]), x, it->vhashmap->vlen);
+
+			nt.bucket = bindex;
+			nt.index = bucket->metadata.length-1;
+		}
 	}
 
 	return nt;
 }
 
 VHashmapIter vhashmap_iter_erase(VHashmapIter *it) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	VHashmapIter nt;
 
 	nt.vhashmap = it->vhashmap;
@@ -254,21 +263,16 @@ VHashmapIter vhashmap_iter_erase(VHashmapIter *it) {
 	nt.index = it->index;
 
 	if (vhashmap_iter_continue(*it)) {
-		array_read(&(it->vhashmap->buckets), it->bucket, &bucket);
-		varray_erase(&bucket, it->index);
-		--(nt.index);
-		if (nt.index >= bucket.metadata.length) {
-			for (ArrayIter jt = array_iter_find(&(it->vhashmap->buckets), nt.bucket-1); !array_iter_end(jt); array_iter_prev(&jt)) {
-				array_iter_read(jt, &bucket);
-				if (bucket.metadata.length > 0) {
-					nt.bucket = jt.index;
-					nt.index = bucket.metadata.length-1;
-					return nt;
-				}
-			}
+		vhashmap_iter_next(&nt);
+		bucket = array_get(&(it->vhashmap->buckets), it->bucket);
+		varray_erase(bucket, it->index);
 
-			nt.bucket = VHASHMAP_INVALID_INDEX;
-			nt.index = VHASHMAP_INVALID_INDEX;
+		if (vhashmap_iter_end(nt)) {
+			*it = vhashmap_iter_last(it->vhashmap);
+		} else {
+			it->bucket = nt.bucket;
+			it->index = nt.index;
+			vhashmap_iter_prev(it);
 		}
 	}
 
@@ -276,16 +280,16 @@ VHashmapIter vhashmap_iter_erase(VHashmapIter *it) {
 }
 
 void vhashmap_iter_next(VHashmapIter *it) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	if (vhashmap_iter_continue(*it)) {
-		array_read(&(it->vhashmap->buckets), it->bucket, &bucket);
+		bucket = array_get(&(it->vhashmap->buckets), it->bucket);
 
 		++(it->index);
 
-		if (it->index >= bucket.metadata.length) {
+		if (it->index >= bucket->metadata.length) {
 			for (ArrayIter jt = array_iter_find(&(it->vhashmap->buckets), it->bucket+1); !array_iter_end(jt); array_iter_next(&jt)) {
-				array_iter_read(jt, &bucket);
-				if (bucket.metadata.length > 0) {
+				bucket = array_iter_get(jt);
+				if (bucket->metadata.length > 0) {
 					it->bucket = jt.index;
 					it->index = 0;
 					return;
@@ -299,18 +303,18 @@ void vhashmap_iter_next(VHashmapIter *it) {
 }
 
 void vhashmap_iter_prev(VHashmapIter *it) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	if (vhashmap_iter_continue(*it)) {
-		array_read(&(it->vhashmap->buckets), it->bucket, &bucket);
+		bucket = array_get(&(it->vhashmap->buckets), it->bucket);
 
 		--(it->index);
 
-		if (it->index >= bucket.metadata.length) {
+		if (it->index >= bucket->metadata.length) {
 			for (ArrayIter jt = array_iter_find(&(it->vhashmap->buckets), it->bucket-1); !array_iter_end(jt); array_iter_prev(&jt)) {
-				array_iter_read(jt, &bucket);
-				if (bucket.metadata.length > 0) {
+				bucket = array_iter_get(jt);
+				if (bucket->metadata.length > 0) {
 					it->bucket = jt.index;
-					it->index = bucket.metadata.length-1;
+					it->index = bucket->metadata.length-1;
 					return;
 				}
 			}
@@ -323,25 +327,27 @@ void vhashmap_iter_prev(VHashmapIter *it) {
 
 
 void vhashmap_iter_set(VHashmapIter it, void *x) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	uint8_t *data;
 	size_t dlen;
 	if (vhashmap_iter_continue(it)) {
-		array_read(&(it.vhashmap->buckets), it.bucket, &bucket);
-		data = varray_get(&bucket, it.index, &dlen);
-		memmove(&(data[dlen - (it.vhashmap->vlen)]), x, it.vhashmap->vlen);
+		bucket = array_get(&(it.vhashmap->buckets), it.bucket);
+		data = varray_get(bucket, it.index, &dlen);
+
+		if (x != NULL)
+			memmove(&(data[dlen - (it.vhashmap->vlen)]), x, it.vhashmap->vlen);
 	}
 }
 
 void vhashmap_iter_read(VHashmapIter it, void *x) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	uint8_t *data;
 	size_t dlen;
 
 	if (vhashmap_iter_continue(it)) {
-		array_read(&(it.vhashmap->buckets), it.bucket, &bucket);
+		bucket = array_get(&(it.vhashmap->buckets), it.bucket);
 
-		data = varray_get(&bucket, it.index, &dlen);
+		data = varray_get(bucket, it.index, &dlen);
 
 		if (x != NULL) {
 			memmove(x, &(data[dlen - (it.vhashmap->vlen)]), it.vhashmap->vlen);
@@ -350,13 +356,13 @@ void vhashmap_iter_read(VHashmapIter it, void *x) {
 }
 
 void *vhashmap_iter_get(VHashmapIter it) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	uint8_t *data;
 	size_t dlen;
 
 	if (vhashmap_iter_continue(it)) {
-		array_read(&(it.vhashmap->buckets), it.bucket, &bucket);
-		data = varray_get(&bucket, it.index, &dlen);
+		bucket = array_get(&(it.vhashmap->buckets), it.bucket);
+		data = varray_get(bucket, it.index, &dlen);
 		return &(data[dlen - (it.vhashmap->vlen)]);
 	} else {
 		return NULL;
@@ -365,14 +371,14 @@ void *vhashmap_iter_get(VHashmapIter it) {
 
 
 void vhashmap_iter_read_key(VHashmapIter it, void *key, size_t *klen) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	uint8_t *data;
 	size_t dlen;
 
 	if (vhashmap_iter_continue(it)) {
-		array_read(&(it.vhashmap->buckets), it.bucket, &bucket);
+		bucket = array_get(&(it.vhashmap->buckets), it.bucket);
 
-		data = varray_get(&bucket, it.index, &dlen);
+		data = varray_get(bucket, it.index, &dlen);
 
 		if (klen != NULL) {
 			*klen = (dlen - (it.vhashmap->vlen));
@@ -385,13 +391,13 @@ void vhashmap_iter_read_key(VHashmapIter it, void *key, size_t *klen) {
 }
 
 void *vhashmap_iter_get_key(VHashmapIter it, size_t *klen) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	void *key;
 	size_t dlen;
 
 	if (vhashmap_iter_continue(it)) {
-		array_read(&(it.vhashmap->buckets), it.bucket, &bucket);
-		key = varray_get(&bucket, it.index, &dlen);
+		bucket = array_get(&(it.vhashmap->buckets), it.bucket);
+		key = varray_get(bucket, it.index, &dlen);
 
 		if (klen != NULL) {
 			*klen = (dlen - (it.vhashmap->vlen));
@@ -405,10 +411,10 @@ void *vhashmap_iter_get_key(VHashmapIter it, size_t *klen) {
 
 
 bool vhashmap_iter_end(VHashmapIter it) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	if (it.bucket < it.vhashmap->buckets.length) {
-		array_read(&(it.vhashmap->buckets), it.bucket, &bucket);
-		if (it.index < bucket.metadata.length) {
+		bucket = array_get(&(it.vhashmap->buckets), it.bucket);
+		if (it.index < bucket->metadata.length) {
 			return false;
 		} else {
 			return true;
@@ -419,10 +425,10 @@ bool vhashmap_iter_end(VHashmapIter it) {
 }
 
 bool vhashmap_iter_continue(VHashmapIter it) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 	if (it.bucket < it.vhashmap->buckets.length) {
-		array_read(&(it.vhashmap->buckets), it.bucket, &bucket);
-		if (it.index < bucket.metadata.length) {
+		bucket = array_get(&(it.vhashmap->buckets), it.bucket);
+		if (it.index < bucket->metadata.length) {
 			return true;
 		} else {
 			return false;

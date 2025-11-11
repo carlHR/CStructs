@@ -228,7 +228,7 @@ ArrayIter array_iter_erase(ArrayIter *it) {
 	nt.index = it->index;
 	if (array_iter_continue(*it)) {
 		array_erase(it->array, it->index);
-		--nt.index;
+		--(it->index);
 	}
 	return nt;
 }

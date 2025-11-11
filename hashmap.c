@@ -142,15 +142,15 @@ void *hashmap_get(Hashmap *h, void *key) {
 
 HashmapIter hashmap_iter_first(Hashmap *h) {
 	HashmapIter it;
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 
 	it.hashmap = h;
 	it.bucket = HASHMAP_INVALID_INDEX;
 	it.index = HASHMAP_INVALID_INDEX;
 
 	for (ArrayIter jt = array_iter_first(&(h->buckets)); !array_iter_end(jt); array_iter_next(&jt)) {
-		array_iter_read(jt, &bucket);
-		if (bucket.length > 0) {
+		bucket = array_iter_get(jt);
+		if (bucket->length > 0) {
 			it.bucket = jt.index;
 			it.index = 0;
 			break;
@@ -176,17 +176,17 @@ HashmapIter hashmap_iter_find(Hashmap *h, void *key) {
 
 HashmapIter hashmap_iter_last(Hashmap *h) {
 	HashmapIter it;
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 
 	it.hashmap = h;
 	it.bucket = HASHMAP_INVALID_INDEX;
 	it.index = HASHMAP_INVALID_INDEX;
 
 	for (ArrayIter jt = array_iter_last(&(h->buckets)); !array_iter_end(jt); array_iter_prev(&jt)) {
-		array_iter_read(jt, &bucket);
-		if (bucket.length > 0) {
+		bucket = array_iter_get(jt);
+		if (bucket->length > 0) {
 			it.bucket = jt.index;
-			it.index = bucket.length-1;
+			it.index = bucket->length-1;
 			break;
 		}
 	}
@@ -205,35 +205,37 @@ HashmapIter hashmap_iter_insert(HashmapIter *it, void *key, void *x) {
 	nt.bucket = it->bucket;
 	nt.index = it->index;
 
-	if (hashmap_iter_continue(*it)) {
-		if (hashmap_find(it->hashmap, key, &bucket, &bindex, &index)) {
-			// Set value only
-			data = array_get(bucket, index);
+	if (hashmap_find(it->hashmap, key, &bucket, &bindex, &index)) {
+		// Set value only
+		data = array_get(bucket, index);
+		if (x != NULL)
 			memmove(&(data[it->hashmap->klen]), x, it->hashmap->vlen);
-		} else {
-			// Insert data
-			if (it->bucket == bindex) {
-				array_insert(bucket, it->index, NULL);
-				data = array_get(bucket, it->index);
-				memmove(&(data[0]), key, it->hashmap->klen);
-				memmove(&(data[it->hashmap->klen]), x, it->hashmap->vlen);
-				++(it->index);
-			} else {
-				array_push(bucket, NULL);
-				data = array_get(bucket, bucket->length-1);
-				memmove(&(data[0]), key, it->hashmap->klen);
-				memmove(&(data[it->hashmap->klen]), x, it->hashmap->vlen);
-				nt.bucket = bindex;
-				nt.index = bucket->length-1;
-			}
-		}
 	} else {
-		array_push(bucket, NULL);
-		data = array_get(bucket, bucket->length-1);
-		memmove(&(data[0]), key, it->hashmap->klen);
-		memmove(&(data[it->hashmap->klen]), x, it->hashmap->vlen);
-		nt.bucket = bindex;
-		nt.index = bucket->length-1;
+		// Insert data
+		if (hashmap_iter_continue(*it) && it->bucket == bindex) {
+			array_insert(bucket, it->index, NULL);
+			data = array_get(bucket, it->index);
+
+			if (key != NULL)
+				memmove(&(data[0]), key, it->hashmap->klen);
+
+			if (x != NULL)
+				memmove(&(data[it->hashmap->klen]), x, it->hashmap->vlen);
+
+			++(it->index);
+		} else {
+			array_push(bucket, NULL);
+			data = array_get(bucket, bucket->length-1);
+
+			if (key != NULL)
+				memmove(&(data[0]), key, it->hashmap->klen);
+
+			if (x != NULL)
+				memmove(&(data[it->hashmap->klen]), x, it->hashmap->vlen);
+
+			nt.bucket = bindex;
+			nt.index = bucket->length-1;
+		}
 	}
 
 	return nt;
@@ -241,7 +243,7 @@ HashmapIter hashmap_iter_insert(HashmapIter *it, void *key, void *x) {
 
 // Must erase the curren item, and return the next iterator.
 HashmapIter hashmap_iter_erase(HashmapIter *it) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	HashmapIter nt;
 
 	nt.hashmap = it->hashmap;
@@ -249,21 +251,16 @@ HashmapIter hashmap_iter_erase(HashmapIter *it) {
 	nt.index = it->index;
 
 	if (hashmap_iter_continue(*it)) {
-		array_read(&(it->hashmap->buckets), it->bucket, &bucket);
-		array_erase(&bucket, it->index);
-		--(nt.index);
-		if (nt.index >= bucket.length) {
-			for (ArrayIter jt = array_iter_find(&(it->hashmap->buckets), nt.bucket-1); !array_iter_end(jt); array_iter_prev(&jt)) {
-				array_iter_read(jt, &bucket);
-				if (bucket.length > 0) {
-					nt.bucket = jt.index;
-					nt.index = bucket.length-1;
-					return nt;
-				}
-			}
+		hashmap_iter_next(&nt);
+		bucket = array_get(&(it->hashmap->buckets), it->bucket);
+		array_erase(bucket, it->index);
 
-			nt.bucket = HASHMAP_INVALID_INDEX;
-			nt.index = HASHMAP_INVALID_INDEX;
+		if (hashmap_iter_end(nt)) {
+			*it = hashmap_iter_last(it->hashmap);
+		} else {
+			it->bucket = nt.bucket;
+			it->index = nt.index;
+			hashmap_iter_prev(it);
 		}
 	}
 
@@ -271,16 +268,16 @@ HashmapIter hashmap_iter_erase(HashmapIter *it) {
 }
 
 void hashmap_iter_next(HashmapIter *it) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	if (hashmap_iter_continue(*it)) {
-		array_read(&(it->hashmap->buckets), it->bucket, &bucket);
+		bucket = array_get(&(it->hashmap->buckets), it->bucket);
 
 		++(it->index);
 
-		if (it->index >= bucket.length) {
+		if (it->index >= bucket->length) {
 			for (ArrayIter jt = array_iter_find(&(it->hashmap->buckets), it->bucket+1); !array_iter_end(jt); array_iter_next(&jt)) {
-				array_iter_read(jt, &bucket);
-				if (bucket.length > 0) {
+				bucket = array_iter_get(jt);
+				if (bucket->length > 0) {
 					it->bucket = jt.index;
 					it->index = 0;
 					return;
@@ -294,18 +291,18 @@ void hashmap_iter_next(HashmapIter *it) {
 }
 
 void hashmap_iter_prev(HashmapIter *it) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	if (hashmap_iter_continue(*it)) {
-		array_read(&(it->hashmap->buckets), it->bucket, &bucket);
+		bucket = array_get(&(it->hashmap->buckets), it->bucket);
 
 		--(it->index);
 
-		if (it->index >= bucket.length) {
+		if (it->index >= bucket->length) {
 			for (ArrayIter jt = array_iter_find(&(it->hashmap->buckets), it->bucket-1); !array_iter_end(jt); array_iter_prev(&jt)) {
-				array_iter_read(jt, &bucket);
-				if (bucket.length > 0) {
+				bucket = array_iter_get(jt);
+				if (bucket->length > 0) {
 					it->bucket = jt.index;
-					it->index = bucket.length-1;
+					it->index = bucket->length-1;
 					return;
 				}
 			}
@@ -318,23 +315,25 @@ void hashmap_iter_prev(HashmapIter *it) {
 
 
 void hashmap_iter_set(HashmapIter it, void *x) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	uint8_t *data;
 	if (hashmap_iter_continue(it)) {
-		array_read(&(it.hashmap->buckets), it.bucket, &bucket);
-		data = array_get(&bucket, it.index);
-		memmove(&(data[it.hashmap->klen]), x, it.hashmap->vlen);
+		bucket = array_get(&(it.hashmap->buckets), it.bucket);
+		data = array_get(bucket, it.index);
+
+		if (x != NULL)
+			memmove(&(data[it.hashmap->klen]), x, it.hashmap->vlen);
 	}
 }
 
 void hashmap_iter_read(HashmapIter it, void *x) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	uint8_t *data;
 
 	if (hashmap_iter_continue(it)) {
-		array_read(&(it.hashmap->buckets), it.bucket, &bucket);
+		bucket = array_get(&(it.hashmap->buckets), it.bucket);
 
-		data = array_get(&bucket, it.index);
+		data = array_get(bucket, it.index);
 
 		if (x != NULL) {
 			memmove(x, &(data[it.hashmap->klen]), it.hashmap->vlen);
@@ -343,12 +342,12 @@ void hashmap_iter_read(HashmapIter it, void *x) {
 }
 
 void *hashmap_iter_get(HashmapIter it) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	uint8_t *data;
 
 	if (hashmap_iter_continue(it)) {
-		array_read(&(it.hashmap->buckets), it.bucket, &bucket);
-		data = array_get(&bucket, it.index);
+		bucket = array_get(&(it.hashmap->buckets), it.bucket);
+		data = array_get(bucket, it.index);
 		return &(data[it.hashmap->klen]);
 	} else {
 		return NULL;
@@ -357,13 +356,13 @@ void *hashmap_iter_get(HashmapIter it) {
 
 
 void hashmap_iter_read_key(HashmapIter it, void *key) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	uint8_t *data;
 
 	if (hashmap_iter_continue(it)) {
-		array_read(&(it.hashmap->buckets), it.bucket, &bucket);
+		bucket = array_get(&(it.hashmap->buckets), it.bucket);
 
-		data = array_get(&bucket, it.index);
+		data = array_get(bucket, it.index);
 
 		if (key != NULL) {
 			memmove(key, data, it.hashmap->klen);
@@ -372,12 +371,12 @@ void hashmap_iter_read_key(HashmapIter it, void *key) {
 }
 
 void *hashmap_iter_get_key(HashmapIter it) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	void *key;
 
 	if (hashmap_iter_continue(it)) {
-		array_read(&(it.hashmap->buckets), it.bucket, &bucket);
-		key = array_get(&bucket, it.index);
+		bucket = array_get(&(it.hashmap->buckets), it.bucket);
+		key = array_get(bucket, it.index);
 		return key;
 	} else {
 		return NULL;
@@ -386,10 +385,10 @@ void *hashmap_iter_get_key(HashmapIter it) {
 
 
 bool hashmap_iter_end(HashmapIter it) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	if (it.bucket < it.hashmap->buckets.length) {
-		array_read(&(it.hashmap->buckets), it.bucket, &bucket);
-		if (it.index < bucket.length) {
+		bucket = array_get(&(it.hashmap->buckets), it.bucket);
+		if (it.index < bucket->length) {
 			return false;
 		} else {
 			return true;
@@ -400,10 +399,10 @@ bool hashmap_iter_end(HashmapIter it) {
 }
 
 bool hashmap_iter_continue(HashmapIter it) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 	if (it.bucket < it.hashmap->buckets.length) {
-		array_read(&(it.hashmap->buckets), it.bucket, &bucket);
-		if (it.index < bucket.length) {
+		bucket = array_get(&(it.hashmap->buckets), it.bucket);
+		if (it.index < bucket->length) {
 			return true;
 		} else {
 			return false;
@@ -412,4 +411,3 @@ bool hashmap_iter_continue(HashmapIter it) {
 		return false;
 	}
 }
-
