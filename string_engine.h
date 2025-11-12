@@ -27,51 +27,6 @@
 #define _UTF8_MASK_00001111 ((unsigned char) 15)
 #define _UTF8_MASK_00000111 ((unsigned char) 7)
 
-/*
-	String Engine is a fancy (yet not so optimized) way to handling strings in C.
-
-	What does it do:
-		- It ensures that strings are immutable.
-		- It handles strings memory (de)allocation.
-		- It works with the concept of scopes. You eiter enter or leave one.
-		- Strings are unsigned integers, with O(1) data access.
-
-	Here's a demonstration:
-
-		int main(void) {
-			StringEngine se;
-			String a, b, c;
-			string_engine_init(&se);
-			string_engine_bind(&se);
-		
-			a = string_newf("A");
-			b = string_newf("B");
-			c = string_concat(a, b);
-
-			printf("c is: `%s`\n", string_data(c));
-
-			string_engine_free(&se);
-			return 0;
-		}
-
-	The code above illustrates how the engine works. By calling init, it creates
-	the first scope. By calling free, it frees the matching scope. All strings
-	created inside a scope will be freed afterwards. If you want to set more
-	scopes, use string_engine_push followed by string_engine_pop.
-
-	By using string_engine_clone, you can copy an entire string to a spare buffer,
-	allowing you to take a string to an upper scope, if needed.
-
-	String Engine also supports many more functions:
-		- Utf-8 (introspection support)
-		- Regex
-
-	The entire API is reentrant in the sense that you can always bind different
-	engines at some point, in order to manage where each string will be allocated
-	at. This allows you to not only open scopes on inside of another, but also
-	create scopes in parallel, managing which one is the current engine at a time.
-*/
-
 typedef struct _string_engine {
 	VArray buffer;
 	Array scopes;  // Array<size_t>

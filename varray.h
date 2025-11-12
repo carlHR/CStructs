@@ -9,19 +9,6 @@
 
 #include "array.h"
 
-/*
-	VArray is supposed to mean Variadic Array, or simply, an array that can store N
-	items of different sizes inside it. The array is supposed to be continuous just
-	like "array.h".
-
-	VArray uses two arrays in order to ensure constant time complexity in order to
-	index items. However, as a drawback of not being able to identify "empty" or "vacant"
-	spaces within the array, there's no similar function to array_move for varrays.
-
-	If you plan to store all items with the same size in bytes, use "array.h". Its
-	cheaper and faster.
-*/
-
 typedef struct _varray_metadata {
 	size_t offset;
 	size_t length;

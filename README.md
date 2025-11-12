@@ -105,3 +105,26 @@ Behaves much like hashmap.h internally, but makes use of VArray in each bucket t
 
 The only drawback of this data structure is the same as hashmap.h: values are not tightly packed with each other (as there're keys in between), and the entire data is not contiguous (as each bucket has a different data memory location). 
 
+---
+# Cache
+
+Behaves like Hashmap, but ensures that all values are tightly packed inside a single contiguous dynamic memory block.
+Keys must be of constant size. Values must be of constant size.
+
+---
+# VCache
+
+Behaves like Cache, but values can be of variable size.
+
+---
+# Dict
+
+Behaves like VHashmap, but ensures that all values are tightly packed inside a single contiguous dynamic memory block.
+Keys can have variable size from 0..N, given that you pass the size in bytes each time a key is requested.
+Values must be of constant size.
+
+---
+# VDict
+
+Behaves like Dict, but values can be of variable size.
+

@@ -10,23 +10,6 @@
 
 #define _ARRAY_GROWTH ((double) 0.33)
 
-/*
-	Stores a package of data in each position.
-
-	Remarks:
-		array_move is used both to insert and erase items.
-			- insert is used to insert on the index.
-				- array_move([0 1 2], 0, ARRAY_MOVE_ADD, 2, .) -> [. . 0 1 2]
-				- array_move([0 1 2], 1, ARRAY_MOVE_ADD, 2, .) -> [0 . . 1 2]
-				- array_move([0 1 2], 2, ARRAY_MOVE_ADD, 2, .) -> [0 1 . . 2]
-				- array_move([0 1 2], 3, ARRAY_MOVE_ADD, 2, .) -> [0 1 2 . .]
-			- erase is used to remove from the index.
-				- array_move([0 1 2], 0, ARRAY_MOVE_ADD, 2, .) -> [2]
-				- array_move([0 1 2], 1, ARRAY_MOVE_ADD, 2, .) -> [0]
-				- array_move([0 1 2], 2, ARRAY_MOVE_ADD, 2, .) -> [0 1]
-				- array_move([0 1 2], 3, ARRAY_MOVE_ADD, 2, .) -> [0 1 2]
-*/
-
 typedef struct _array {
 	uint8_t *data;
 	size_t chunk;
