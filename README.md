@@ -137,7 +137,7 @@ So, for example, if you want to tightly store structs inside a single array, and
 
 As each value stored is also a key, all values need to be unique. So, as to avoid creating duplicates, you shouldn't set data in a set manually. If you need to, then remove the value, and then add the new value right after. Each add/del function returns true\|false depending wether they succeed. 
 
-As indexing uses hashmaps buckets, implemented internally from scratch, their search time should be `O(logN)` at worst case. if you allocate a set with lots of buckets, the search time may hopefully stay optimal in most cases.
+As indexing uses hashmaps buckets, implemented internally from scratch, their search time should be optimal even at worst case. if you allocate a set with lots of buckets, the search time may hopefully stay optimal in most cases.
 
 <sub>I got the idea to create such a data structure, when attempting to program with OpenGL. In this context, you commonly need to store shader vertex data, such as position, texture coordinates, normals, and vertex colors somehow, and I commonly go with the route of using a single VBO. So, whenever you need to create a mesh, you must find each vertex data position, and assign those indices to your mesh (which is the element array buffer). So, a set, in this particular case, fits perfectly.</sub>
 
