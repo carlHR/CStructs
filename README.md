@@ -128,3 +128,78 @@ Values must be of constant size.
 
 Behaves like Dict, but values can be of variable size.
 
+---
+# Set
+
+Sets are different structures who also depend on hashes. Their main use is to store unordered items inside a tightly packed and contiguous dynamic memory block. The main goal of using hashes is to decrease the time to find the item's index.
+
+So, for example, if you want to tightly store structs inside a single array, and for some reason, you need to find where those items are located inside the array, using no other key but the value itself, sets are perfect for this job. As the main goal here is to find elements regardless of their order, I didn't implemented functions to insert values in specific positions, or change data.
+
+As each value stored is also a key, all values need to be unique. So, as to avoid creating duplicates, you shouldn't set data in a set manually. If you need to, then remove the value, and then add the new value right after. Each add/del function returns true\|false depending wether they succeed. 
+
+As indexing uses hashmaps buckets, implemented internally from scratch, their search time should be `O(logN)` at worst case. if you allocate a set with lots of buckets, the search time may hopefully stay optimal in most cases.
+
+<sub>I got the idea to create such a data structure, when attempting to program with OpenGL. In this context, you commonly need to store shader vertex data, such as position, texture coordinates, normals, and vertex colors somehow, and I commonly go with the route of using a single VBO. So, whenever you need to create a mesh, you must find each vertex data position, and assign those indices to your mesh (which is the element array buffer). So, a set, in this particular case, fits perfectly.</sub>
+
+---
+# About iterators
+
+Iterators insert/erase are messy. They allow you to insert and erase values inside containers while you're iterating through it. However, they're tricky to use, and you need to know firsthand how the data structure works internally, before you attempt to use them.
+
+For arrays and varrays, its very direct. For hashmaps, caches, dicts, its not that simple, although they all behave the same within this group. Strings and sets do not have such operations.
+
+### General Example
+
+Although their return values differ in context, they syntax is the same for all iterator insert/erase functions:
+
+```
+Array a;
+ArrayIter it, ot;
+
+// [...] Initialize the array...
+
+it = array_iter_first(&a);
+ot = array_iter_insert(&it);
+ot = array_iter_erase(&it);
+
+// [...] Free the array...
+
+```
+
+As you can see, these functions have 1 input value: `it`, and 2 return values: `it` and `ot`.
+
+### For arrays / varrays:
+
+Inserting items always occurs before the specified position. You can test this with plain `array_insert`. For iterators its the same. The returned value of `it` continues pointing to the current item, as if no insertion occurred, and the returned value of `ot` points to the inserted item.
+
+This means that if you're iterating forward using next, use the value of `it` to avoid infinite loops. If you're iterating in the reverse order using prev, use the value of `ot`.
+
+Now, when erase, its oddly similar. `it` refers to the previous element, as the current one was already eliminated. `ot` refers to the next element. When iterating forward, if you use `ot`, you'll skip one element. This doesn't happen if you use `it`. When iterating on the reverse order, you must use `ot`, otherwise you'll skip one element.
+
+Sounds weird, but its simple:
+   - Are you iterating forward? Use `it`.
+   - Are you iterating backwards? Use `ot`.
+
+### For hashmaps, caches and dicts:
+
+Iterators points to keys-values/indices within each bucket. When the iterator reaches the end of a bucket, the iterator simply jumps to the beggining of the next bucket, until all buckets are searched. When iterating on the reverse order, iterators jump to the end of a bucket, going backwards one element by one.
+
+When inserting elements, there can be 3 behaviors:
+   1. The key passed is already present on the container. So, it acts as data overwrite.
+   2. The key passed is not present, and will be inside the same bucket as the iterator.
+   3. The key passed is not present, and won't be inside the same bucket as the iterator.
+
+When situation 1 happens, both `it` and `ot` won't change. Nothing is inserted.
+
+When situation 2 happens, the function behaves exactly like array and varray. `it` points to the current element as if nothing had been inserted, and `ot` points to the inserted element.
+
+When situation 3 happens, `it` points to the current element as if nothing had been inserted, and `ot` points to the inserted element.
+
+Now, situations 2 and 3 differ in the sense that, in situation 2, you'll always skip the inserted element during the iteration. In situation 3, this might not happen. Depending on which bucket the item gets inserted, you may yet iterate over it later on.
+
+When erasing elements, it'll attempt to erase only the current iterator, so the operation is guaranteeded to return:
+   - `it` as the previous element
+   - `ot` as the next element
+
+For all iterators, if `it` or `ot` points to an element that is out of bounds, the iterator itself is invalid, and iter_end will return *true*, and iter_continue will return *false*.
+
