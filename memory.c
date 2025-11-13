@@ -23,6 +23,6 @@ void memory_free(void *p) {
 }
 
 // By default, there's no recovery call set and the program will simply exit.
-void memory_set_recover_callback(MemoryRecoveryCallback callback) {
+void memory_set_recovery_callback(MemoryRecoveryCallback callback) {
 	_recovery = callback;
 }

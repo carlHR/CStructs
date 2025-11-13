@@ -9,6 +9,6 @@ typedef void * (*MemoryRecoveryCallback)(size_t);
 
 void *memory_malloc(size_t n);
 void memory_free(void *p);
-void memory_set_recover_callback(MemoryRecoveryCallback callback);
+void memory_set_recovery_callback(MemoryRecoveryCallback callback);
 
 #endif
