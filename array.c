@@ -109,14 +109,16 @@ void array_move(Array *a, size_t i, ArrayOperation op, size_t n, void *fill) {
 		array_reserve(a, a->length+n);
 
 		if (i < a->length) {
-			memmove(&(a->data[a->chunk * (i+n)]), &(a->data[a->chunk * i]), a->chunk * (a->length - i));
+			if (a->data != NULL) {
+				memmove(&(a->data[a->chunk * (i+n)]), &(a->data[a->chunk * i]), a->chunk * (a->length - i));
+			}
 			if (fill != NULL) {
 				for (size_t k = 0; k < n; ++k) {
 					memmove(&(a->data[a->chunk * (i+k)]), fill, a->chunk);
 				}
 			}
 		} else if (i == a->length) {
-			if (fill != NULL) {
+			if (fill != NULL && a->data != NULL) {
 				for (size_t k = 0; k < n; ++k) {
 					memmove(&(a->data[a->chunk * (a->length+k)]), fill, a->chunk);
 				}

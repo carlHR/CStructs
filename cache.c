@@ -96,12 +96,25 @@ void *cache_get(Cache *c, void *key) {
 	}
 }
 
+size_t cache_find(Cache *c, void *key) {
+	HashmapIter it;
+	size_t idx;
+
+	it = hashmap_iter_find(&(c->indices), key);
+	if (hashmap_iter_continue(it)) {
+		hashmap_iter_read(it, &idx);
+		return idx;
+	} else {
+		return CACHE_INVALID_INDEX;
+	}
+}
 
 CacheIter cache_iter_first(Cache *c) {
 	CacheIter it;
 
 	it.cache = c;
 	it.hiter = hashmap_iter_first(&(c->indices));
+	it.index = CACHE_INVALID_INDEX;
 	hashmap_iter_read(it.hiter, &(it.index));
 
 	return it;
@@ -112,6 +125,7 @@ CacheIter cache_iter_find(Cache *c, void *key) {
 
 	it.cache = c;
 	it.hiter = hashmap_iter_find(&(c->indices), key);
+	it.index = CACHE_INVALID_INDEX;
 	hashmap_iter_read(it.hiter, &(it.index));
 
 	return it;
@@ -122,6 +136,7 @@ CacheIter cache_iter_last(Cache *c) {
 
 	it.cache = c;
 	it.hiter = hashmap_iter_last(&(c->indices));
+	it.index = CACHE_INVALID_INDEX;
 	hashmap_iter_read(it.hiter, &(it.index));
 
 	return it;

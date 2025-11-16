@@ -33,6 +33,7 @@ void cache_set(Cache *c, void *key, void *x);
 bool cache_del(Cache *c, void *key);
 bool cache_read(Cache *c, void *key, void *x);
 void *cache_get(Cache *c, void *key);
+size_t cache_find(Cache *c, void *key);
 
 CacheIter cache_iter_first(Cache *c);
 CacheIter cache_iter_find(Cache *c, void *key);

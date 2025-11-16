@@ -5,7 +5,9 @@ MemoryRecoveryCallback _recovery = NULL;
 // Attempts to allocate memory safely. If fails, instead of returning NULL, it
 // calls for the recovery function in an attempt to recover from bad allocation.
 void *memory_malloc(size_t n) {
-	void *p = malloc(n);
+	void *p;
+
+	p = malloc(n);
 	if (p == NULL) {
 		if (_recovery == NULL) {
 			exit(0);

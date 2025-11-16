@@ -48,11 +48,11 @@ void hashmap_init(Hashmap *h, size_t klen, size_t vlen, size_t n) {
 }
 
 void hashmap_free(Hashmap *h) {
-	HashmapBucket bucket;
+	HashmapBucket *bucket;
 
 	for (ArrayIter it = array_iter_first(&(h->buckets)); !array_iter_end(it); array_iter_next(&it)) {
-		array_iter_read(it, &bucket);
-		array_free(&bucket);
+		bucket = array_iter_get(it);
+		array_free(bucket);
 	}
 
 	array_free(&(h->buckets));

@@ -49,11 +49,11 @@ void vhashmap_init(VHashmap *h, size_t vlen, size_t n) {
 }
 
 void vhashmap_free(VHashmap *h) {
-	VHashmapBucket bucket;
+	VHashmapBucket *bucket;
 
 	for (ArrayIter it = array_iter_first(&(h->buckets)); !array_iter_end(it); array_iter_next(&it)) {
-		array_iter_read(it, &bucket);
-		varray_free(&bucket);
+		bucket = array_iter_get(it);
+		varray_free(bucket);
 	}
 
 	array_free(&(h->buckets));
