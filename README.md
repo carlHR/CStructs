@@ -142,6 +142,13 @@ As indexing uses hashmaps buckets, implemented internally from scratch, their se
 <sub>I got the idea to create such a data structure, when attempting to program with OpenGL. In this context, you commonly need to store shader vertex data, such as position, texture coordinates, normals, and vertex colors somehow, and I commonly go with the route of using a single VBO. So, whenever you need to create a mesh, you must find each vertex data position, and assign those indices to your mesh (which is the element array buffer). So, a set, in this particular case, fits perfectly.</sub>
 
 ---
+# CQueue
+
+Implements a circular array for maximizing efficiency when pushing/popping items. When tested with 100000, it took less than a second to push/pop all of them at once, admist all the buffer reallocations. Depending on the policies, you can control how much bytes the queue will grow whenever needed, and how much it'll shrink in size, depending on how many items are inside it.
+
+Currently, the queue only decreases in size when the queue contains equal or less than 1/4 of the total length in terms of items. It decreases size by half, and increases size by doubling it, unlike arrays who allocate 1/3 of total size. Also unlike arrays, queues' policies are per instance to maximize their performance.
+
+---
 # About iterators
 
 Iterators insert/erase are messy. They allow you to insert and erase values inside containers while you're iterating through it. However, they're tricky to use, and you need to know firsthand how the data structure works internally, before you attempt to use them.
