@@ -14,7 +14,7 @@
 
 #define VCACHE_INVALID_INDEX HASHMAP_INVALID_INDEX
 
-typedef struct _cache {
+typedef struct _vcache {
 	VArray values;
 	Hashmap indices;
 } VCache;
