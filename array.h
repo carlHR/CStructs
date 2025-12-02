@@ -36,6 +36,7 @@ void array_fit(Array *a);
 void array_resize(Array *a, size_t n, void *fill);
 void array_move(Array *a, size_t i, ArrayOperation op, size_t n, void *fill);
 
+size_t array_reserve_hint(Array *a, size_t n);
 void array_insert(Array *a, size_t i, void *x);
 void array_erase(Array *a, size_t i);
 void array_push(Array *a, void *x);

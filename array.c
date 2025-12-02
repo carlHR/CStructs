@@ -14,10 +14,8 @@ void array_free(Array *a) {
 	a->capacity = 0;
 }
 
-
-void array_reserve(Array *a, size_t n) {
+size_t array_reserve_hint(Array *a, size_t n) {
 	size_t c = 1, ac;
-	uint8_t *tmp;
 
 	while (c < n) {
 		ac = (size_t) (((double) c) * _ARRAY_GROWTH);
@@ -30,7 +28,16 @@ void array_reserve(Array *a, size_t n) {
 		c += ac;
 	}
 
-	if (c >= a->capacity) {
+	return c;
+}
+
+void array_reserve(Array *a, size_t n) {
+	uint8_t *tmp;
+	size_t c;
+
+	c = array_reserve_hint(a, n);
+
+	if (n > a->capacity && c > a->capacity) {
 		tmp = a->data;
 		a->data = memory_malloc(c * a->chunk);
 		if (tmp != NULL)
@@ -42,19 +49,10 @@ void array_reserve(Array *a, size_t n) {
 }
 
 void array_shrink(Array *a, size_t n) {
-	size_t c = 1, ac;
+	size_t c;
 	uint8_t *tmp;
 
-	while (c < n) {
-		ac = (size_t) (((double) c) * _ARRAY_GROWTH);
-
-		// increase by a minimum of 2 bytes.
-		if (ac <= 1) {
-			ac = 2;
-		}
-
-		c += ac;
-	}
+	c = array_reserve_hint(a, n);
 
 	// Attempts to shrink the array down.
 	if (c >= a->length && c < a->capacity) {
